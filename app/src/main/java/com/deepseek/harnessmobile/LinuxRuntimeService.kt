@@ -10,6 +10,8 @@ import android.content.Intent
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.lifecycle.LifecycleService
+import kotlinx.coroutines.launch
 
 class LinuxRuntimeService : Service() {
 
@@ -29,6 +31,11 @@ class LinuxRuntimeService : Service() {
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification("Initializing..."))
         runtimeManager = RuntimeManager(this)
+        // Start runtime in background coroutine
+        androidx.lifecycle.lifecycleScope?.launch {
+            runtimeManager?.start()
+            updateNotification("Ubuntu Running")
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
