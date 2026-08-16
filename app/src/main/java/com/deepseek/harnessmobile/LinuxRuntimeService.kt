@@ -23,8 +23,12 @@ class LinuxRuntimeService : Service() {
         private const val NOTIFICATION_ID = 1001
         const val ACTION_START = "com.deepseek.harnessmobile.ACTION_START"
         const val ACTION_STOP = "com.deepseek.harnessmobile.ACTION_STOP"
+        @JvmStatic
         var runtimeState: RuntimeState = RuntimeState.IDLE
-            private set
+            set(value) {
+                field = value
+                Log.d(TAG, "State changed to: $value")
+            }
     }
 
     private var job: Job? = null
@@ -63,13 +67,10 @@ class LinuxRuntimeService : Service() {
                 updateNotification("正在初始化...")
                 
                 val rm = RuntimeManager.instance ?: return@launch
-                
-                // Initialize Ubuntu environment
                 rm.initializeEnvironment()
                 updateState(RuntimeState.UBUNTU_READY)
                 updateNotification("Ubuntu 就绪")
                 
-                // Start PRoot process
                 rm.startPrroot()
                 updateState(RuntimeState.HARNESS_RUNNING)
                 updateNotification("DeepSeek Harness 运行中")
@@ -93,7 +94,6 @@ class LinuxRuntimeService : Service() {
 
     private fun updateState(state: RuntimeState) {
         runtimeState = state
-        Log.d(TAG, "State changed to: $state")
     }
 
     private fun updateNotification(content: String) {

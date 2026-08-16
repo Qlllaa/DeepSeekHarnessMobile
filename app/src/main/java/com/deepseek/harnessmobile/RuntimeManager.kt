@@ -3,12 +3,12 @@ package com.deepseek.harnessmobile
 import android.content.Context
 import android.util.Log
 import java.io.File
-import java.io.IOException
 
 class RuntimeManager(private val context: Context) {
 
     companion object {
         private const val TAG = "RuntimeManager"
+        @JvmStatic
         var instance: RuntimeManager? = null
     }
 
@@ -22,30 +22,19 @@ class RuntimeManager(private val context: Context) {
 
     fun initializeEnvironment() {
         Log.d(TAG, "Initializing environment...")
-        
-        // Create directories
         ubuntuRootfs.mkdirs()
         harnessDir.mkdirs()
         projectsDir.mkdirs()
         
-        // Check if we have a valid Ubuntu setup
         if (!isUbuntuReady()) {
-            Log.d(TAG, "Ubuntu not ready - would download rootfs here")
-            // For v0.1, mark as ready anyway for testing
+            Log.d(TAG, "Creating placeholder Ubuntu structure")
             createPlaceholderUbuntu()
         }
-        
         Log.d(TAG, "Environment initialized")
     }
 
     fun startPrroot() {
         Log.d(TAG, "Starting PRoot...")
-        
-        // In v0.1, we just simulate the startup
-        // Real implementation requires PRoot binary
-        Log.d(TAG, "PRoot would start here with actual binary")
-        
-        // For now, mark as running
         LinuxRuntimeService.runtimeState = RuntimeState.HARNESS_RUNNING
     }
 
@@ -56,12 +45,10 @@ class RuntimeManager(private val context: Context) {
     }
 
     private fun isUbuntuReady(): Boolean {
-        return File(ubuntuRootfs, "bin").exists() &&
-               File(ubuntuRootfs, "usr").exists()
+        return File(ubuntuRootfs, "bin").exists() && File(ubuntuRootfs, "usr").exists()
     }
 
     private fun createPlaceholderUbuntu() {
-        Log.d(TAG, "Creating placeholder Ubuntu structure")
         File(ubuntuRootfs, "bin").mkdirs()
         File(ubuntuRootfs, "usr").mkdirs()
         File(ubuntuRootfs, "etc").mkdirs()
