@@ -21,8 +21,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.content.Context
-import android.app.Activity
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,6 +31,18 @@ class MainActivity : ComponentActivity() {
                 MainScreen()
             }
         }
+    }
+    
+    fun startRuntime() {
+        val intent = Intent(this, LinuxRuntimeService::class.java)
+        intent.action = LinuxRuntimeService.ACTION_START
+        startForegroundService(intent)
+    }
+    
+    fun stopRuntime() {
+        val intent = Intent(this, LinuxRuntimeService::class.java)
+        intent.action = LinuxRuntimeService.ACTION_STOP
+        stopService(intent)
     }
 }
 
@@ -79,21 +89,11 @@ fun RuntimeStatus() {
         Text(text, fontWeight = FontWeight.Medium)
         Spacer(modifier = Modifier.weight(1f))
         if (state == RuntimeState.IDLE || state == RuntimeState.ERROR) {
-            Button(onClick = { startService() }) { Text("启动") }
+            Button(onClick = { /* Call activity method */ }) { Text("启动") }
         } else if (state == RuntimeState.HARNESS_RUNNING) {
-            Button(onClick = { stopService() }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("停止") }
+            Button(onClick = { /* Call activity method */ }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("停止") }
         }
     }
-}
-
-fun startService() {
-    val intent = Intent("com.deepseek.harnessmobile.ACTION_START").setClassName("com.deepseek.harnessmobile", "com.deepseek.harnessmobile.LinuxRuntimeService")
-    startActivity(intent)
-}
-
-fun stopService() {
-    val intent = Intent("com.deepseek.harnessmobile.ACTION_STOP").setClassName("com.deepseek.harnessmobile", "com.deepseek.harnessmobile.LinuxRuntimeService")
-    stopService(intent)
 }
 
 @Composable
