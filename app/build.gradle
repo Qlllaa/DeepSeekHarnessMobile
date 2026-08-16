@@ -1,0 +1,20 @@
+# Build configuration for DeepSeek Harness Mobile
+
+android {
+    namespace = "com.deepseek.harnessmobile"
+    compileSdk = 36
+
+    defaultConfig {
+        applicationId = "com.deepseek.harnessmobile"
+        minSdk = 34
+        targetSdk = 36
+        versionCode = 1
+        versionName = "0.1.0"
+    }
+    
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+        }
+    }
+}
