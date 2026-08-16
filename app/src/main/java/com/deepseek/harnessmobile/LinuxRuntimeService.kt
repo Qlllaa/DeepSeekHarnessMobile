@@ -23,43 +23,25 @@ class LinuxRuntimeService : Service() {
         private const val NOTIFICATION_ID = 1001
         const val ACTION_START = "com.deepseek.harnessmobile.ACTION_START"
         const val ACTION_STOP = "com.deepseek.harnessmobile.ACTION_STOP"
+        var runtimeState: RuntimeState = RuntimeState.IDLE
+            private set
     }
 
-    private var runtimeManager: RuntimeManager? = null
     private var job: Job? = null
+    private var processRunner: ProcessRunner? = null
 
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "Service created")
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, buildNotification("Initializing..."))
-        runtimeManager = RuntimeManager(this)
-        job = Job()
-        CoroutineScope(Dispatchers.IO + job!!).launch {
-            runtimeManager?.start()
-            updateNotification("Ubuntu Running")
-        }
+        startForeground(NOTIFICATION_ID, buildNotification("初始化中..."))
+        RuntimeManager.instance = RuntimeManager(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_START -> {
-                Log.d(TAG, "Starting runtime...")
-                job?.let {
-                    CoroutineScope(Dispatchers.IO + it).launch {
-                        runtimeManager?.start()
-                        updateNotification("Ubuntu Running")
-                    }
-                }
-            }
-            ACTION_STOP -> {
-                Log.d(TAG, "Stopping runtime...")
-                runtimeManager?.stop()
-                updateNotification("Stopped")
-                job?.cancel()
-                job = null
-                stopSelf()
-            }
+            ACTION_START -> startRuntime()
+            ACTION_STOP -> stopRuntime()
         }
         return START_STICKY
     }
@@ -68,10 +50,56 @@ class LinuxRuntimeService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        runtimeManager?.stop()
+        stopRuntime()
+        Log.d(TAG, "Service destroyed")
+    }
+
+    private fun startRuntime() {
+        if (job != null && job!!.isActive) return
+        job = Job()
+        CoroutineScope(Dispatchers.IO + job!!).launch {
+            try {
+                updateState(RuntimeState.INITIALIZING)
+                updateNotification("正在初始化...")
+                
+                val rm = RuntimeManager.instance ?: return@launch
+                
+                // Initialize Ubuntu environment
+                rm.initializeEnvironment()
+                updateState(RuntimeState.UBUNTU_READY)
+                updateNotification("Ubuntu 就绪")
+                
+                // Start PRoot process
+                rm.startPrroot()
+                updateState(RuntimeState.HARNESS_RUNNING)
+                updateNotification("DeepSeek Harness 运行中")
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Runtime error", e)
+                updateState(RuntimeState.ERROR)
+                updateNotification("错误: ${e.message}")
+            }
+        }
+    }
+
+    private fun stopRuntime() {
         job?.cancel()
         job = null
-        Log.d(TAG, "Service destroyed")
+        processRunner?.destroy()
+        processRunner = null
+        updateState(RuntimeState.IDLE)
+        updateNotification("已停止")
+    }
+
+    private fun updateState(state: RuntimeState) {
+        runtimeState = state
+        Log.d(TAG, "State changed to: $state")
+    }
+
+    private fun updateNotification(content: String) {
+        val notification = buildNotification(content)
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.notify(NOTIFICATION_ID, notification)
     }
 
     private fun createNotificationChannel() {
@@ -100,10 +128,12 @@ class LinuxRuntimeService : Service() {
             .setOngoing(true)
             .build()
     }
+}
 
-    private fun updateNotification(content: String) {
-        val notification = buildNotification(content)
-        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(NOTIFICATION_ID, notification)
-    }
+enum class RuntimeState {
+    IDLE,
+    INITIALIZING,
+    UBUNTU_READY,
+    HARNESS_RUNNING,
+    ERROR
 }

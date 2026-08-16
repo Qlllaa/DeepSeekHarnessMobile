@@ -2,76 +2,56 @@ package com.deepseek.harnessmobile
 
 import android.content.Context
 import android.util.Log
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
-
-enum class RuntimeState {
-    UNINITIALIZED,
-    INITIALIZING,
-    UBUNTU_READY,
-    STARTING_HARNESS,
-    RUNNING,
-    ERROR
-}
 
 class RuntimeManager(private val context: Context) {
 
     companion object {
         private const val TAG = "RuntimeManager"
-        private const val UBUNTU_DIR = "ubuntu"
-        private const val HARNESS_DIR = "harness"
-        private const val RUNTIME_DIR = "runtime"
-        private const val PROJECTS_DIR = "projects"
+        var instance: RuntimeManager? = null
     }
 
-    var state: RuntimeState = RuntimeState.UNINITIALIZED
-        private set
-
     private val appDir = File(context.filesDir, "linux")
-    private val ubuntuRootfs = File(appDir, UBUNTU_DIR)
-    private val harnessDir = File(appDir, HARNESS_DIR)
-    private val runtimeDir = File(appDir, RUNTIME_DIR)
-    private val projectsDir = File(context.getExternalFilesDir(null), PROJECTS_DIR)
+    private val ubuntuRootfs = File(appDir, "ubuntu")
+    private val harnessDir = File(appDir, "harness")
+    private val projectsDir = File(context.getExternalFilesDir(null) ?: File(context.filesDir, "projects"), "projects")
 
     var processRunner: ProcessRunner? = null
+        private set
 
-    suspend fun start() = withContext(Dispatchers.IO) {
-        try {
-            state = RuntimeState.INITIALIZING
-            Log.d(TAG, "Starting initialization...")
-            
-            // Create directories
-            ubuntuRootfs.mkdirs()
-            harnessDir.mkdirs()
-            runtimeDir.mkdirs()
-            projectsDir.mkdirs()
-            
-            // Check if Ubuntu is already set up
-            if (!isUbuntuReady()) {
-                Log.d(TAG, "Ubuntu not ready, would download rootfs here")
-                // In v0.1, we'll skip actual download and just mark as ready
-                // for testing the structure
-                markUbuntuReady()
-            }
-            
-            state = RuntimeState.UBUNTU_READY
-            Log.d(TAG, "Ubuntu ready")
-            
-            // Start PRoot process
-            startPrroot()
-            
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start runtime", e)
-            state = RuntimeState.ERROR
+    fun initializeEnvironment() {
+        Log.d(TAG, "Initializing environment...")
+        
+        // Create directories
+        ubuntuRootfs.mkdirs()
+        harnessDir.mkdirs()
+        projectsDir.mkdirs()
+        
+        // Check if we have a valid Ubuntu setup
+        if (!isUbuntuReady()) {
+            Log.d(TAG, "Ubuntu not ready - would download rootfs here")
+            // For v0.1, mark as ready anyway for testing
+            createPlaceholderUbuntu()
         }
+        
+        Log.d(TAG, "Environment initialized")
+    }
+
+    fun startPrroot() {
+        Log.d(TAG, "Starting PRoot...")
+        
+        // In v0.1, we just simulate the startup
+        // Real implementation requires PRoot binary
+        Log.d(TAG, "PRoot would start here with actual binary")
+        
+        // For now, mark as running
+        LinuxRuntimeService.runtimeState = RuntimeState.HARNESS_RUNNING
     }
 
     fun stop() {
         processRunner?.destroy()
         processRunner = null
-        state = RuntimeState.UNINITIALIZED
         Log.d(TAG, "Runtime stopped")
     }
 
@@ -80,18 +60,21 @@ class RuntimeManager(private val context: Context) {
                File(ubuntuRootfs, "usr").exists()
     }
 
-    private fun markUbuntuReady() {
-        // Create minimal directory structure for testing
+    private fun createPlaceholderUbuntu() {
+        Log.d(TAG, "Creating placeholder Ubuntu structure")
         File(ubuntuRootfs, "bin").mkdirs()
         File(ubuntuRootfs, "usr").mkdirs()
         File(ubuntuRootfs, "etc").mkdirs()
         File(ubuntuRootfs, "home").mkdirs()
         File(ubuntuRootfs, "tmp").mkdirs()
+        File(ubuntuRootfs, "root").mkdirs()
     }
 
-    private fun startPrroot() {
-        // In v0.1, we just create a placeholder
-        // Actual PRoot integration requires the binary
-        Log.d(TAG, "PRoot would start here")
+    fun getProjectPath(projectName: String): String {
+        return File(projectsDir, projectName).absolutePath
+    }
+
+    fun listProjects(): List<String> {
+        return projectsDir.list()?.toList() ?: emptyList()
     }
 }
