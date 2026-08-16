@@ -10,7 +10,9 @@ import android.content.Intent
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import androidx.lifecycle.LifecycleService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 class LinuxRuntimeService : Service() {
@@ -24,6 +26,7 @@ class LinuxRuntimeService : Service() {
     }
 
     private var runtimeManager: RuntimeManager? = null
+    private var scope: CoroutineScope? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -31,8 +34,8 @@ class LinuxRuntimeService : Service() {
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification("Initializing..."))
         runtimeManager = RuntimeManager(this)
-        // Start runtime in background coroutine
-        androidx.lifecycle.lifecycleScope?.launch {
+        scope = CoroutineScope(Dispatchers.IO + Job())
+        scope?.launch {
             runtimeManager?.start()
             updateNotification("Ubuntu Running")
         }
@@ -42,13 +45,16 @@ class LinuxRuntimeService : Service() {
         when (intent?.action) {
             ACTION_START -> {
                 Log.d(TAG, "Starting runtime...")
-                runtimeManager?.start()
-                updateNotification("Ubuntu Running")
+                scope?.launch {
+                    runtimeManager?.start()
+                    updateNotification("Ubuntu Running")
+                }
             }
             ACTION_STOP -> {
                 Log.d(TAG, "Stopping runtime...")
                 runtimeManager?.stop()
                 updateNotification("Stopped")
+                scope?.cancel()
                 stopSelf()
             }
         }
@@ -60,6 +66,7 @@ class LinuxRuntimeService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         runtimeManager?.stop()
+        scope?.cancel()
         Log.d(TAG, "Service destroyed")
     }
 
