@@ -54,7 +54,7 @@ class LinuxRuntimeService : Service() {
                 Log.d(TAG, "Stopping runtime...")
                 runtimeManager?.stop()
                 updateNotification("Stopped")
-                scope?.cancel()
+                scope?.coroutineContext?.cancel()
                 stopSelf()
             }
         }
@@ -66,7 +66,7 @@ class LinuxRuntimeService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         runtimeManager?.stop()
-        scope?.cancel()
+        scope?.coroutineContext?.cancel()
         Log.d(TAG, "Service destroyed")
     }
 
