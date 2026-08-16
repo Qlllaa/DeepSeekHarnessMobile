@@ -21,7 +21,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
+import android.content.Context
+import android.app.Activity
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,7 +74,7 @@ fun RuntimeStatus() {
         RuntimeState.ERROR -> "错误"
     }
     Row(modifier = Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.size(12.dp).background(if (state == RuntimeState.HARNESS_RUNNING) Color.Green else Color.Red, shape = MaterialTheme.shapes.small))
+        Box(modifier = Modifier.size(12.dp).background(if (state == RuntimeState.HARNESS_RUNNING) Color.Green else Color.Red, shape = androidx.compose.foundation.shape.RoundedCornerShape(2.dp)))
         Spacer(modifier = Modifier.width(8.dp))
         Text(text, fontWeight = FontWeight.Medium)
         Spacer(modifier = Modifier.weight(1f))
@@ -87,12 +88,12 @@ fun RuntimeStatus() {
 
 fun startService() {
     val intent = Intent("com.deepseek.harnessmobile.ACTION_START").setClassName("com.deepseek.harnessmobile", "com.deepseek.harnessmobile.LinuxRuntimeService")
-    ContextCompat.startForegroundService(androidx.appcompat.app.AppCompatActivity(), intent)
+    startActivity(intent)
 }
 
 fun stopService() {
     val intent = Intent("com.deepseek.harnessmobile.ACTION_STOP").setClassName("com.deepseek.harnessmobile", "com.deepseek.harnessmobile.LinuxRuntimeService")
-    androidx.appcompat.app.AppCompatActivity().stopService(intent)
+    stopService(intent)
 }
 
 @Composable
