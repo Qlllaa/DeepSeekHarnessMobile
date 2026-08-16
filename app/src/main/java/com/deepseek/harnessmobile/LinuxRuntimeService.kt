@@ -26,7 +26,7 @@ class LinuxRuntimeService : Service() {
     }
 
     private var runtimeManager: RuntimeManager? = null
-    private var scope: CoroutineScope? = null
+    private var job: Job? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -34,8 +34,8 @@ class LinuxRuntimeService : Service() {
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification("Initializing..."))
         runtimeManager = RuntimeManager(this)
-        scope = CoroutineScope(Dispatchers.IO + Job())
-        scope?.launch {
+        job = Job()
+        CoroutineScope(Dispatchers.IO + job!!).launch {
             runtimeManager?.start()
             updateNotification("Ubuntu Running")
         }
@@ -45,17 +45,19 @@ class LinuxRuntimeService : Service() {
         when (intent?.action) {
             ACTION_START -> {
                 Log.d(TAG, "Starting runtime...")
-                scope?.launch {
-                    runtimeManager?.start()
-                    updateNotification("Ubuntu Running")
+                job?.let {
+                    CoroutineScope(Dispatchers.IO + it).launch {
+                        runtimeManager?.start()
+                        updateNotification("Ubuntu Running")
+                    }
                 }
             }
             ACTION_STOP -> {
                 Log.d(TAG, "Stopping runtime...")
                 runtimeManager?.stop()
                 updateNotification("Stopped")
-                scope?.cancel()
-                scope = null
+                job?.cancel()
+                job = null
                 stopSelf()
             }
         }
@@ -67,8 +69,8 @@ class LinuxRuntimeService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         runtimeManager?.stop()
-        scope?.cancel()
-        scope = null
+        job?.cancel()
+        job = null
         Log.d(TAG, "Service destroyed")
     }
 
